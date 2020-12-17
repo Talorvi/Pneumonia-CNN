@@ -29,6 +29,30 @@ train_images = []
 
 learning_history = None
 
+num_classes = 0
+
+X_train, y_train, X_test, y_test = [], [], [], []
+
+callback = [
+    EarlyStopping(monitor='loss', patience=7),
+    ReduceLROnPlateau(monitor='loss', patience=4),
+    ModelCheckpoint('./models/model.hdf5', monitor='loss', save_best_only=True)  # saving the best model
+]
+
+data_gen = ImageDataGenerator(
+    featurewise_center=False,
+    samplewise_center=False,
+    featurewise_std_normalization=False,
+    samplewise_std_normalization=False,
+    zca_whitening=False,
+    horizontal_flip=False,
+    vertical_flip=False,
+    rotation_range=15,
+    zoom_range=0.2,
+    width_shift_range=0.15,
+    height_shift_range=0.15
+)
+
 
 # loading data to arrays used in building the network
 def load_data(dir_path, array):
@@ -155,27 +179,6 @@ def draw_learning_curve(history, keys=None):
     plt.show()
 
 
-callback = [
-    EarlyStopping(monitor='loss', patience=7),
-    ReduceLROnPlateau(monitor='loss', patience=4),
-    ModelCheckpoint('./models/model.hdf5', monitor='loss', save_best_only=True)  # saving the best model
-]
-
-data_gen = ImageDataGenerator(
-    featurewise_center=False,
-    samplewise_center=False,
-    featurewise_std_normalization=False,
-    samplewise_std_normalization=False,
-    zca_whitening=False,
-    horizontal_flip=False,
-    vertical_flip=False,
-    rotation_range=15,
-    zoom_range=0.2,
-    width_shift_range=0.15,
-    height_shift_range=0.15
-)
-
-
 def load_training_test_data():
     print("Loading data")
 
@@ -216,8 +219,7 @@ def evaluate_network(model, x_test, y_test):
     return score
 
 
-if __name__ == "__main__":
-    # print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+def prepare_data():
     print("Loading train images...")
     load_data(train_data_path, train_images)
     print("Loaded", len(train_images), " train images.")
@@ -241,8 +243,37 @@ if __name__ == "__main__":
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
 
-    num_classes = y_train.shape[1]
+    return X_train, y_train, X_test, y_test
+
+
+def process_sample(sample_path):
+    image = cv2.resize(cv2.imread(sample_path), (image_size, image_size))
+    image = preprocess_data(image)
+    return image
+
+
+def predict(model: Sequential, sample):
+    prediction = model.predict_classes(sample)
+    return prediction
+
+
+if __name__ == "__main__":
+    # print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+
+    # X_train, y_train, X_test, y_test = prepare_data()
+    # num_classes = y_train.shape[1]
+
+    # train_network()
+
     model = get_model(num_classes)
     model = load_network_model(model)
 
-    evaluate_network(model=model, x_test=X_test, y_test=y_test)
+    # evaluate_network(model=model, x_test=X_test, y_test=y_test)
+
+    sample = process_sample("./val/PNEUMONIA/person1954_bacteria_4886.jpeg")
+    predction_class = predict(model, sample)
+
+    if predction_class is 0:
+        print("Sample predicted class: NORMAL")
+    else:
+        print("Sample predicted class: PNEUMONIA")
