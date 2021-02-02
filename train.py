@@ -33,12 +33,14 @@ num_classes = 0
 
 X_train, y_train, X_test, y_test = [], [], [], []
 
+# added early stopping, so the network won't be overfitting
 callback = [
     EarlyStopping(monitor='loss', patience=7),
     ReduceLROnPlateau(monitor='loss', patience=4),
     ModelCheckpoint('./models/model.hdf5', monitor='loss', save_best_only=True)  # saving the best model
 ]
 
+# generator for the image dataset -> better results of training
 data_gen = ImageDataGenerator(
     featurewise_center=False,
     samplewise_center=False,
@@ -109,6 +111,7 @@ def preprocess_data(data):
     return ret_data
 
 
+# here is the model saved as Sequential
 def get_model(num_classes):
     return Sequential([
         Conv2D(16, kernel_size=(3, 3), activation='relu', padding='same', input_shape=(image_size, image_size, 1)),
@@ -164,6 +167,7 @@ def get_model(num_classes):
     ])
 
 
+# draws a diagram of the network's learning over time
 def draw_learning_curve(history, keys=None):
     if keys is None:
         keys = ['accuracy', 'loss']
@@ -179,17 +183,7 @@ def draw_learning_curve(history, keys=None):
     plt.show()
 
 
-def load_training_test_data():
-    print("Loading data")
-
-
-def load_network_model(network_model):
-    print("Loading model...")
-    network_model = load_model('model.hdf5')
-    print("Model loaded!")
-    return network_model
-
-
+# training the network
 def train_network():
     print("Training network")
 
@@ -212,13 +206,15 @@ def train_network():
     draw_learning_curve(learning_history)
 
 
+# checks the real score of the trained network
 def evaluate_network(model, x_test, y_test):
-    score = model.evaluate(X_test, y_test, verbose=0)
+    score = model.evaluate(x_test, y_test, verbose=0)
     print('Test loss: {}%'.format(score[0] * 100))
     print('Test accuracy: {}%'.format(score[1] * 100))
     return score
 
 
+# prepares the dataset for further operations
 def prepare_data():
     print("Loading train images...")
     load_data(train_data_path, train_images)
@@ -239,42 +235,19 @@ def prepare_data():
     X_train = preprocess_data(X_train)
     X_test = preprocess_data(X_test)
 
-    # one-hot encoding
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
 
     return X_train, y_train, X_test, y_test
 
 
-def process_sample(sample_path):
-    image = cv2.resize(cv2.imread(sample_path), (image_size, image_size))
-    image = preprocess_data(image)
-    return image
-
-
-def predict(model: Sequential, sample):
-    prediction = model.predict_classes(sample)
-    return prediction
-
-
 if __name__ == "__main__":
-    # print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+    X_train, y_train, X_test, y_test = prepare_data()
+    num_classes = y_train.shape[1]
 
-    # X_train, y_train, X_test, y_test = prepare_data()
-    # num_classes = y_train.shape[1]
-
-    # train_network()
+    train_network()
 
     model = get_model(num_classes)
-    model = load_network_model(model)
     model.summary()
 
-    # evaluate_network(model=model, x_test=X_test, y_test=y_test)
-
-    sample = process_sample("./val/PNEUMONIA/person1954_bacteria_4886.jpeg")
-    predction_class = predict(model, sample)
-
-    if predction_class is 0:
-        print("Sample predicted class: NORMAL")
-    else:
-        print("Sample predicted class: PNEUMONIA")
+    evaluate_network(model=model, x_test=X_test, y_test=y_test)
