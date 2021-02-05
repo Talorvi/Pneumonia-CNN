@@ -203,6 +203,8 @@ def train_network():
     )
     print("Network trained!")
 
+    evaluate_network(model=model, x_test=X_test, y_test=y_test)
+
     draw_learning_curve(learning_history)
 
 
@@ -246,8 +248,3 @@ if __name__ == "__main__":
     num_classes = y_train.shape[1]
 
     train_network()
-
-    model = get_model(num_classes)
-    model.summary()
-
-    evaluate_network(model=model, x_test=X_test, y_test=y_test)

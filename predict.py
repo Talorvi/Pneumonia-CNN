@@ -32,7 +32,7 @@ def process_sample(sample_path):
 # loads existing network for further use
 def load_network_model(network_model):
     print("Loading model...")
-    network_model = load_model('model.hdf5')
+    network_model = load_model('models/model.hdf5')
     print("Model loaded!")
     return network_model
 
@@ -41,10 +41,20 @@ if __name__ == "__main__":
     model = get_model()
     model = load_network_model(model)
 
-    sample = process_sample("./val/PNEUMONIA/person1954_bacteria_4886.jpeg")
-    prediction_class = predict(model, sample)
+    while True:
+        input1 = input()
+        print(input1)
+        if input1 == "q":
+            break
 
-    if prediction_class is 0:
-        print("Sample predicted class: NORMAL")
-    else:
-        print("Sample predicted class: PNEUMONIA")
+        try:
+            sample = process_sample(input1)
+        finally:
+            prediction_class = predict(model, sample).tolist()[0]
+
+            if prediction_class == 0:
+                print("Sample predicted class: NORMAL")
+            else:
+                print("Sample predicted class: PNEUMONIA")
+
+    quit()
